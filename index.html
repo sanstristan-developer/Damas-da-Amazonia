@@ -1,0 +1,1635 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Damas da Amazônia - Sistema Completo com Torneios</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter e Montserrat -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome para Ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        amazon: {
+                            900: '#06160e',
+                            800: '#0b2619',
+                            700: '#113a26',
+                            600: '#1a5237',
+                            gold: '#f3a923',
+                            goldLight: '#fbc02d',
+                            goldHover: '#e09819',
+                            greenBright: '#10b981',
+                            greenAccent: '#059669',
+                            darkCard: 'rgba(9, 32, 21, 0.82)'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Montserrat', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        .bg-jungle {
+            background-image: linear-gradient(to bottom, rgba(5, 20, 13, 0.75), rgba(4, 15, 9, 0.90)), 
+                              url('https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?q=80&w=1920&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        .glass-panel {
+            background: rgba(8, 28, 18, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .glass-card {
+            background: rgba(6, 22, 14, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .auth-card {
+            background: rgba(5, 22, 14, 0.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(243, 169, 35, 0.4);
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), 0 0 15px rgba(243, 169, 35, 0.15);
+        }
+
+        .ribbon-banner {
+            background: linear-gradient(90deg, #eab308 0%, #ca8a04 100%);
+            clip-path: polygon(0 0, 100% 0, 95% 100%, 0% 100%);
+        }
+
+        .amazon-input {
+            background-color: rgba(9, 36, 23, 0.8);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #ffffff;
+            transition: all 0.2s ease-in-out;
+        }
+        .amazon-input:focus {
+            outline: none;
+            border-color: #f3a923;
+            box-shadow: 0 0 8px rgba(243, 169, 35, 0.3);
+            background-color: rgba(12, 48, 30, 0.9);
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #06160e;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #113a26;
+            border-radius: 3px;
+        }
+
+
+        /* Fallback para alternar telas mesmo se o Tailwind CDN estiver indisponível */
+        .hidden { display: none !important; }
+
+        /* Jogo local de damas: CSS próprio, sem biblioteca externa */
+        .draughts-wrap { color: #ecfdf5; }
+        .draughts-board { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); width: min(100%, 620px); aspect-ratio: 1 / 1; margin-inline: auto; border: 4px solid #b8862b; border-radius: 12px; overflow: hidden; box-shadow: 0 18px 45px rgba(0,0,0,.35); }
+        .draughts-square { position: relative; display: flex; align-items: center; justify-content: center; min-width: 0; aspect-ratio: 1 / 1; border: 0; padding: 0; cursor: pointer; }
+        .draughts-square.light { background: #e8d8ae; }
+        .draughts-square.dark { background: #24583b; }
+        .draughts-square.dark:hover { filter: brightness(1.15); }
+        .draughts-square.selected { box-shadow: inset 0 0 0 4px #ffd45b; }
+        .draughts-square.legal::after { content: ''; position: absolute; width: 25%; height: 25%; border-radius: 50%; background: rgba(255, 213, 79, .9); box-shadow: 0 0 0 3px rgba(15, 55, 33, .35); }
+        .draughts-piece { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; width: 76%; height: 76%; border-radius: 50%; font-size: clamp(12px, 3.2vw, 28px); font-weight: 900; box-shadow: inset 0 -5px 0 rgba(0,0,0,.22), 0 3px 6px rgba(0,0,0,.28); border: 3px solid rgba(255,255,255,.25); user-select: none; }
+        .draughts-piece.green { color: #f0fdf4; background: radial-gradient(circle at 32% 25%, #34d399, #087443 70%); border-color: #6ee7b7; }
+        .draughts-piece.gold { color: #422006; background: radial-gradient(circle at 32% 25%, #fde68a, #c88719 72%); border-color: #fef3c7; }
+        .draughts-piece.king { outline: 3px solid #f8d66d; outline-offset: -7px; }
+        .draughts-status { min-height: 3rem; }
+        @media (max-width: 480px) { .draughts-board { border-width: 2px; border-radius: 6px; } .draughts-piece { border-width: 2px; box-shadow: inset 0 -3px 0 rgba(0,0,0,.22); } }
+
+    </style>
+</head>
+<body class="bg-amazon-900 text-white font-sans min-h-screen flex flex-col md:flex-row overflow-x-hidden select-none relative">
+
+    <!-- MODAL DE AUTENTICAÇÃO -->
+    <div id="authModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md transition-opacity duration-300">
+        <div class="w-full max-w-4xl flex flex-col md:flex-row items-center justify-center gap-6 md:gap-10">
+            <div class="hidden md:flex flex-col items-center justify-center text-center p-4 shrink-0">
+                <div class="relative w-44 h-44 rounded-full border-4 border-amber-500/70 bg-amazon-800/80 flex flex-col items-center justify-center shadow-2xl p-2 mb-3 group hover:border-amber-400 transition-all">
+                    <div class="w-full h-full rounded-full bg-gradient-to-b from-amber-600/30 to-emerald-900/50 flex flex-col items-center justify-center border border-amber-400/20">
+                        <i class="fa-solid fa-cat text-5xl text-amber-400 mb-1 drop-shadow"></i>
+                        <span class="text-[10px] text-amber-300/60 uppercase font-bold tracking-widest">[ Imagem Onça ]</span>
+                    </div>
+                </div>
+                <p class="font-display font-semibold text-lg text-emerald-100 drop-shadow-md">
+                    Sua jornada<br/>começa aqui!
+                </p>
+            </div>
+
+            <div class="auth-card w-full max-w-md rounded-3xl p-6 sm:p-8 relative">
+                <div id="signupFormContainer">
+                    <div class="text-center mb-6">
+                        <h2 class="font-display font-black text-2xl sm:text-3xl text-white tracking-tight">Criar sua conta</h2>
+                        <p class="text-xs sm:text-sm text-emerald-200/80 mt-1 font-medium">Entre e faça parte da maior comunidade de damas da Amazônia!</p>
+                    </div>
+
+                    <button type="button" onclick="simularEntradaGoogle()" class="w-full py-2.5 px-4 rounded-xl bg-amazon-900/90 hover:bg-amazon-800 border border-emerald-600/40 text-white text-sm font-semibold flex items-center justify-center gap-3 transition-all hover:border-emerald-400 shadow">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                        </svg>
+                        Entrar com Google
+                    </button>
+
+                    <div class="flex items-center my-4">
+                        <div class="flex-grow border-t border-emerald-800/60"></div>
+                        <span class="px-3 text-xs text-emerald-400/60 font-semibold uppercase">ou</span>
+                        <div class="flex-grow border-t border-emerald-800/60"></div>
+                    </div>
+
+                    <form id="signupForm" onsubmit="realizarCadastro(event)" class="space-y-3.5">
+                        <div>
+                            <label class="block text-xs font-semibold text-emerald-100 mb-1">Nome de usuário</label>
+                            <input type="text" id="signupUsername" required placeholder="Escolha um nome de usuário" class="w-full px-3.5 py-2.5 rounded-xl amazon-input text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-emerald-100 mb-1">E-mail</label>
+                            <input type="email" id="signupEmail" required placeholder="seu@email.com" class="w-full px-3.5 py-2.5 rounded-xl amazon-input text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-emerald-100 mb-1">Senha</label>
+                            <input type="password" id="signupPassword" required placeholder="Crie uma senha segura" class="w-full px-3.5 py-2.5 rounded-xl amazon-input text-sm">
+                        </div>
+                        <div class="flex items-start gap-2 pt-1">
+                            <input type="checkbox" id="termsCheck" required class="mt-0.5 rounded border-emerald-600 bg-amazon-900 text-amber-500 focus:ring-amber-500">
+                            <label for="termsCheck" class="text-xs text-emerald-200/80 leading-tight">
+                                Li e aceito os <a href="#" onclick="event.preventDefault();" class="text-emerald-400 hover:underline">Termos de Uso</a>
+                            </label>
+                        </div>
+                        <button type="submit" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-amazon-900 font-extrabold text-base shadow-lg shadow-amber-950/40 transition-all transform active:scale-[0.99] mt-2">
+                            Cadastrar
+                        </button>
+                    </form>
+                    <p class="text-center text-xs text-emerald-200/70 mt-5">
+                        Já tem uma conta? <button type="button" onclick="alternarFormulario('login')" class="text-white font-bold hover:underline hover:text-amber-400 ml-1">Entrar</button>
+                    </p>
+                </div>
+
+                <div id="loginFormContainer" class="hidden">
+                    <div class="text-center mb-6">
+                        <h2 class="font-display font-black text-2xl sm:text-3xl text-white tracking-tight">Acessar sua conta</h2>
+                        <p class="text-xs sm:text-sm text-emerald-200/80 mt-1 font-medium">Bem-vindo de volta às Damas da Amazônia!</p>
+                    </div>
+                    <form id="loginForm" onsubmit="realizarLogin(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-emerald-100 mb-1">E-mail ou Usuário</label>
+                            <input type="text" id="loginUser" required placeholder="Digite seu e-mail ou usuário" class="w-full px-3.5 py-2.5 rounded-xl amazon-input text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-emerald-100 mb-1">Senha</label>
+                            <input type="password" id="loginPassword" required placeholder="Sua senha" class="w-full px-3.5 py-2.5 rounded-xl amazon-input text-sm">
+                        </div>
+                        <button type="submit" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-amazon-900 font-extrabold text-base shadow-lg shadow-amber-950/40 transition-all transform active:scale-[0.99] mt-2">
+                            Entrar
+                        </button>
+                    </form>
+                    <p class="text-center text-xs text-emerald-200/70 mt-6">
+                        Ainda não tem conta? <button type="button" onclick="alternarFormulario('signup')" class="text-white font-bold hover:underline hover:text-amber-400 ml-1">Cadastrar-se</button>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SIDEBAR DE NAVEGAÇÃO -->
+    <aside class="w-full md:w-64 bg-amazon-900/95 border-r border-amazon-700/50 flex flex-col justify-between shrink-0 z-20">
+        <div>
+            <div class="p-5 flex items-center gap-3 border-b border-amazon-700/30">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center text-amazon-900 shadow-lg">
+                    <i class="fa-solid fa-leaf text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-display font-black text-lg tracking-wider text-amber-400 leading-tight">DAMAS DA</h1>
+                    <p class="font-display font-black text-sm tracking-widest text-emerald-400 leading-tight">AMAZÔNIA</p>
+                </div>
+            </div>
+
+            <nav class="p-3 space-y-1.5 text-sm font-medium">
+                <div id="nav-home" onclick="mudarAba('home')" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 text-amazon-900 font-bold shadow-md cursor-pointer transition-all">
+                    <i class="fa-solid fa-house text-base w-5 text-center"></i>
+                    <span>Início</span>
+                </div>
+
+                <!-- TORNEIOS -->
+                <div id="nav-tournaments" onclick="mudarAba('tournaments')" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-lg text-emerald-100/70 hover:bg-emerald-900/30 hover:text-white cursor-pointer transition-colors">
+                    <i class="fa-solid fa-trophy text-amber-400/80 text-base w-5 text-center"></i>
+                    <span>Torneios</span>
+                </div>
+
+                <div id="nav-game" onclick="mudarAba('game')" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-lg text-emerald-100/70 hover:bg-emerald-900/30 hover:text-white cursor-pointer transition-colors">
+                    <i class="fa-solid fa-chess-board text-amber-400/80 text-base w-5 text-center"></i>
+                    <span>Jogar Damas</span>
+                </div>
+
+                <div id="nav-store" onclick="mudarAba('store')" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-lg text-emerald-100/70 hover:bg-emerald-900/30 hover:text-white cursor-pointer transition-colors">
+                    <i class="fa-solid fa-bag-shopping text-amber-400/80 text-base w-5 text-center"></i>
+                    <span>Loja de Bananas</span>
+                </div>
+
+                <div id="nav-wallet" onclick="mudarAba('wallet')" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-lg text-emerald-100/70 hover:bg-emerald-900/30 hover:text-white cursor-pointer transition-colors">
+                    <i class="fa-solid fa-wallet text-amber-400/80 text-base w-5 text-center"></i>
+                    <span>Carteira e Saques</span>
+                </div>
+
+                <div id="nav-profile" onclick="mudarAba('profile')" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-lg text-emerald-100/70 hover:bg-emerald-900/30 hover:text-white cursor-pointer transition-colors">
+                    <i class="fa-solid fa-user text-amber-400/80 text-base w-5 text-center"></i>
+                    <span>Perfil</span>
+                </div>
+
+                <div id="nav-settings" onclick="mudarAba('settings')" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-lg text-emerald-100/70 hover:bg-emerald-900/30 hover:text-white cursor-pointer transition-colors">
+                    <i class="fa-solid fa-gear text-amber-400/80 text-base w-5 text-center"></i>
+                    <span>Configurações</span>
+                </div>
+            </nav>
+        </div>
+
+        <div class="p-4 border-t border-amazon-700/30 flex items-center justify-between">
+            <span class="text-xs text-emerald-500/60">Damas da Amazônia &copy; 2026</span>
+            <button onclick="logout()" title="Sair da Conta" class="text-emerald-400/70 hover:text-amber-400 text-xs flex items-center gap-1 transition-colors">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </button>
+        </div>
+    </aside>
+
+    <!-- ÁREA PRINCIPAL DA APLICAÇÃO -->
+    <main class="flex-1 flex flex-col min-h-screen bg-jungle relative">
+
+        <!-- TOP BAR -->
+        <header class="w-full p-4 md:p-6 flex justify-end items-center gap-3 md:gap-4 z-30 relative">
+            <div onclick="mudarAba('store')" class="glass-panel px-3.5 py-1.5 rounded-full flex items-center gap-2 border border-amber-500/30 shadow-lg cursor-pointer hover:border-amber-400 transition-colors">
+                <i class="fa-solid fa-banana text-amber-400 text-lg"></i>
+                <div class="leading-tight">
+                    <span id="headerBananas" class="font-bold text-amber-300 text-sm md:text-base">2.450</span>
+                    <span class="block text-[9px] text-amber-200/60 uppercase font-semibold">Bananas</span>
+                </div>
+            </div>
+
+            <div onclick="mudarAba('wallet')" class="glass-panel px-3.5 py-1.5 rounded-full flex items-center gap-2 border border-emerald-500/30 shadow-lg cursor-pointer hover:border-amber-400 transition-colors">
+                <div class="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-400 flex items-center justify-center text-emerald-400 text-xs font-bold">
+                    R$
+                </div>
+                <div class="leading-tight">
+                    <span id="headerSaldo" class="font-bold text-emerald-300 text-sm md:text-base">R$ 18,50</span>
+                    <span class="block text-[9px] text-emerald-200/60 uppercase font-semibold">Saldo em Prêmios</span>
+                </div>
+            </div>
+
+            <div onclick="mudarAba('profile')" class="glass-panel pl-1.5 pr-4 py-1 rounded-full flex items-center gap-2.5 border border-amber-500/20 shadow-lg cursor-pointer hover:border-amber-400 transition-colors">
+                <div id="topbarAvatarPreview" class="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-emerald-600 border border-amber-300 flex items-center justify-center text-white font-bold text-xs shadow overflow-hidden">
+                    <i id="topbarIconPlaceholder" class="fa-solid fa-cat"></i>
+                    <img id="topbarAvatarImg" src="" alt="Avatar" class="w-full h-full object-cover hidden">
+                </div>
+                <span id="displayUsername" class="font-semibold text-sm text-amber-100 hidden sm:inline">TucanoLendário</span>
+            </div>
+
+            <!-- BOTÃO SINO DE NOTIFICAÇÃO -->
+            <div class="relative">
+                <div id="notificationBellBtn" onclick="toggleNotificationDropdown(event)" class="glass-panel w-10 h-10 rounded-full flex items-center justify-center border border-amber-500/30 text-amber-400 relative shadow-lg cursor-pointer hover:bg-amber-500/10 transition-colors">
+                    <i class="fa-solid fa-bell text-base"></i>
+                    <span id="unreadPing" class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
+                    <span id="unreadDot" class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+                </div>
+
+                <!-- OVERLAY DROPDOWN DE NOTIFICAÇÕES -->
+                <div id="notificationDropdown" class="hidden absolute right-0 top-12 w-80 sm:w-96 glass-card rounded-2xl border border-emerald-500/40 p-4 shadow-2xl z-50 backdrop-blur-xl">
+                    <div class="flex items-center justify-between pb-3 border-b border-emerald-800/60 mb-3">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-bell text-amber-400 text-lg"></i>
+                            <h3 class="font-display font-bold text-base text-white">Notificações</h3>
+                        </div>
+                        <button onclick="marcarTodasLidas()" class="text-xs text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1 transition-colors">
+                            <span>Ver todas</span>
+                            <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                        </button>
+                    </div>
+
+                    <div id="notificationsList" class="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                        <div class="notif-item relative p-3 rounded-xl bg-amazon-900/80 border border-emerald-800/50 flex items-center justify-between gap-3 hover:border-emerald-500/40 transition-all group" data-unread="true">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-full bg-emerald-500/20 border border-emerald-400 flex items-center justify-center text-emerald-400 shrink-0 shadow">
+                                    <i class="fa-solid fa-circle-check text-base"></i>
+                                </div>
+                                <div class="leading-tight">
+                                    <h4 class="font-bold text-xs text-white">Inscrição confirmada</h4>
+                                    <p class="text-[11px] text-emerald-200/70 mt-0.5">Torneio Bronze • 100 bananas</p>
+                                    <span class="text-[9px] text-emerald-400/50 font-mono mt-0.5 block">12/05/2025 • 14:32</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <span class="unread-badge w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"></span>
+                                <button onclick="removerNotificacao(this, event)" class="text-emerald-400/50 hover:text-amber-400 text-xs p-1"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                        </div>
+
+                        <div class="notif-item relative p-3 rounded-xl bg-amazon-900/80 border border-emerald-800/50 flex items-center justify-between gap-3 hover:border-emerald-500/40 transition-all group" data-unread="true">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-full bg-amber-500/20 border border-amber-400 flex items-center justify-center text-amber-400 shrink-0 shadow">
+                                    <i class="fa-solid fa-trophy text-base"></i>
+                                </div>
+                                <div class="leading-tight">
+                                    <h4 class="font-bold text-xs text-white">Torneio prestes a começar</h4>
+                                    <p class="text-[11px] text-emerald-200/70 mt-0.5">Torneio Bronze • 00:15:00</p>
+                                    <span class="text-[9px] text-emerald-400/50 font-mono mt-0.5 block">12/05/2025 • 14:45</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <span class="unread-badge w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"></span>
+                                <button onclick="removerNotificacao(this, event)" class="text-emerald-400/50 hover:text-amber-400 text-xs p-1"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- ================================================================= -->
+        <!-- SEÇÃO INÍCIO (HOMEPAGE) -->
+        <!-- ================================================================= -->
+        <div id="homeSection" class="flex-1 flex flex-col justify-between">
+            <section class="flex-1 flex flex-col justify-center items-center text-center px-4 py-8 max-w-4xl mx-auto z-10">
+                <h2 class="font-display font-black text-3xl sm:text-5xl md:text-6xl text-amber-400 drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] tracking-wide leading-tight italic">
+                    Compre Bananas, Jogue, Vença e<br class="sm:hidden"/> Ganhe Dinheiro!
+                </h2>
+                <p class="mt-4 text-emerald-100/90 text-sm sm:text-base md:text-lg max-w-2xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] font-medium">
+                    Torneios de Damas com prêmios em dinheiro.<br class="hidden sm:inline"/>
+                    Mostre sua estratégia e avance na competição!
+                </p>
+            </section>
+
+            <section class="w-full mt-auto z-10 pb-6 px-4 md:px-8">
+                <div class="ribbon-banner px-6 py-2 w-fit rounded-r-md shadow-md mb-4">
+                    <h3 class="font-display font-extrabold text-amazon-900 text-sm md:text-base uppercase tracking-wider">
+                        Torneios em Destaque
+                    </h3>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-6xl mx-auto">
+                    <div class="glass-card rounded-2xl p-4 md:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 border border-amber-500/30">
+                        <div class="flex items-center gap-4 w-full sm:w-auto">
+                            <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-amber-500/50 bg-amazon-800/80 flex items-center justify-center shrink-0 shadow-inner">
+                                <span class="text-xs text-amber-400/50 font-semibold tracking-tighter uppercase">Bronze</span>
+                            </div>
+                            <div class="space-y-1">
+                                <h4 class="font-display font-bold text-lg md:text-xl text-white">Torneio Bronze</h4>
+                                <p class="text-xs md:text-sm text-emerald-200/80">Entrada: <span class="text-amber-400 font-semibold">100 bananas</span></p>
+                                <p class="text-xs md:text-sm text-emerald-200/80">Prêmio: <span class="text-amber-400 font-bold text-sm md:text-base">R$ 5,00</span></p>
+                            </div>
+                        </div>
+                        <button onclick="inscreverTorneio('Bronze')" class="py-2 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-bold text-sm shadow">Inscrever-se</button>
+                    </div>
+
+                    <div class="glass-card rounded-2xl p-4 md:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 border border-amber-500/30">
+                        <div class="flex items-center gap-4 w-full sm:w-auto">
+                            <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-amber-400/60 bg-amazon-800/80 flex items-center justify-center shrink-0 shadow-inner">
+                                <span class="text-xs text-amber-300/50 font-semibold tracking-tighter uppercase">Ouro</span>
+                            </div>
+                            <div class="space-y-1">
+                                <h4 class="font-display font-bold text-lg md:text-xl text-white">Torneio Ouro</h4>
+                                <p class="text-xs md:text-sm text-emerald-200/80">Entrada: <span class="text-amber-400 font-semibold">1.000 bananas</span></p>
+                                <p class="text-xs md:text-sm text-emerald-200/80">Prêmio: <span class="text-amber-400 font-bold text-sm md:text-base">R$ 50,00</span></p>
+                            </div>
+                        </div>
+                        <button onclick="inscreverTorneio('Ouro')" class="py-2 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-bold text-sm shadow">Inscrever-se</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+
+
+
+
+        <!-- JOGO DE DAMAS OFFLINE: DUAS PESSOAS NO MESMO DISPOSITIVO -->
+        <section id="gameSection" class="hidden flex-1 p-4 md:p-8 z-10 overflow-y-auto draughts-wrap">
+            <div class="max-w-6xl mx-auto">
+                <div class="glass-card rounded-3xl p-4 sm:p-6 md:p-8 border border-emerald-500/30 shadow-2xl">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                        <div>
+                            <p class="text-amber-400 text-xs uppercase tracking-[.25em] font-extrabold">Desafio da floresta</p>
+                            <h2 class="font-display font-black text-2xl sm:text-3xl text-white mt-1">Jogar Damas</h2>
+                            <p class="text-emerald-100/70 text-sm mt-2">Modo local para duas pessoas, no mesmo computador ou dispositivo. Funciona sem conexão depois que esta página está carregada.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" onclick="reiniciarDamas()" class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-emerald-950 font-extrabold text-sm">Nova partida</button>
+                            <button type="button" onclick="declararEmpateDamas()" class="px-4 py-2.5 rounded-xl border border-emerald-400/40 hover:bg-emerald-900/50 text-emerald-100 font-bold text-sm">Declarar empate</button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] gap-6 items-start">
+                        <div class="min-w-0">
+                            <div class="flex items-center justify-between gap-3 mb-3 rounded-xl bg-black/20 border border-emerald-500/20 p-3">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <span class="w-4 h-4 rounded-full bg-emerald-500 border-2 border-emerald-200 shrink-0"></span>
+                                    <span class="font-bold text-sm sm:text-base">Jogador Verde</span>
+                                </div>
+                                <span id="draughtsGreenCount" class="text-emerald-200 text-sm">12 peças</span>
+                            </div>
+                            <div id="draughtsBoard" class="draughts-board" role="group" aria-label="Tabuleiro de damas"></div>
+                            <div class="flex items-center justify-between gap-3 mt-3 rounded-xl bg-black/20 border border-amber-500/20 p-3">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <span class="w-4 h-4 rounded-full bg-amber-400 border-2 border-amber-100 shrink-0"></span>
+                                    <span class="font-bold text-sm sm:text-base">Jogador Dourado</span>
+                                </div>
+                                <span id="draughtsGoldCount" class="text-amber-200 text-sm">12 peças</span>
+                            </div>
+                        </div>
+
+                        <aside class="space-y-4">
+                            <div class="rounded-2xl border border-amber-500/30 bg-emerald-950/60 p-4">
+                                <p class="text-emerald-200/70 text-xs uppercase tracking-widest font-bold">Estado da partida</p>
+                                <h3 id="draughtsTurn" class="font-display text-xl font-black text-amber-300 mt-2">Vez do Jogador Verde</h3>
+                                <p id="draughtsMessage" class="text-sm text-emerald-100/80 mt-3 draughts-status" aria-live="polite">Selecione uma peça verde para começar.</p>
+                            </div>
+                            <div class="rounded-2xl border border-emerald-500/20 bg-black/15 p-4">
+                                <h3 class="font-bold text-white mb-2">Como jogar</h3>
+                                <ul class="text-sm text-emerald-100/75 space-y-2 list-disc pl-5">
+                                    <li>Verde começa e joga de baixo para cima; dourado joga de cima para baixo.</li>
+                                    <li>Selecione uma peça e depois a casa destacada para movê-la.</li>
+                                    <li>A captura é obrigatória e o jogo prioriza as sequências com mais capturas.</li>
+                                    <li>Peças comuns movem uma casa na diagonal; capturam para frente ou para trás.</li>
+                                    <li>Damas podem percorrer várias casas na diagonal e capturar à distância.</li>
+                                    <li>Ao chegar à última fileira, a peça vira dama após concluir a sequência de captura.</li>
+                                </ul>
+                            </div>
+                            <div class="rounded-2xl border border-emerald-500/20 bg-black/15 p-4">
+                                <h3 class="font-bold text-white mb-2">Controles</h3>
+                                <p class="text-sm text-emerald-100/75">Use o mouse, toque na tela ou teclado com leitor de tela: cada casa é um botão.</p>
+                            </div>
+                        </aside>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ================================================================= -->
+        <!-- SEÇÃO TORNEIOS (COM ABAS: ATIVOS NO MOMENTO E HISTÓRICO) -->
+        <!-- ================================================================= -->
+        <div id="tournamentsSection" class="hidden flex-1 p-4 md:p-8 z-10 overflow-y-auto">
+            <div class="max-w-5xl mx-auto glass-card rounded-3xl p-6 md:p-8 border border-emerald-500/30 shadow-2xl relative">
+                
+                <!-- CABEÇALHO -->
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center text-amazon-900 shadow-lg text-2xl">
+                            <i class="fa-solid fa-trophy"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-display font-black text-2xl md:text-3xl text-white tracking-wide">Arena de Torneios</h2>
+                            <p class="text-xs md:text-sm text-emerald-200/80">Participe dos torneios ativos ou confira os resultados anteriores.</p>
+                        </div>
+                    </div>
+
+                    <!-- ABAS DE NAVEGAÇÃO DOS TORNEIOS -->
+                    <div class="flex items-center gap-2 p-1 bg-amazon-900/90 rounded-xl border border-emerald-800/60 w-full sm:w-auto">
+                        <button type="button" onclick="mudarAbaTorneios('ativos', this)" class="tournament-tab flex-1 sm:flex-none py-2 px-4 rounded-lg bg-amber-500/15 border border-amber-500/60 text-amber-400 text-xs font-bold transition-all text-center">
+                            Ativos no Momento
+                        </button>
+                        <button type="button" onclick="mudarAbaTorneios('historico', this)" class="tournament-tab flex-1 sm:flex-none py-2 px-4 rounded-lg text-emerald-200/70 hover:text-white text-xs font-bold transition-all text-center">
+                            Histórico (Anteriores)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- CONTEÚDO 1: TORNEIOS ATIVOS NO MOMENTO -->
+                <div id="tournamentsAtivos" class="space-y-4">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        
+                        <!-- CARD ATIVO 1 -->
+                        <div class="glass-panel rounded-2xl p-5 flex flex-col justify-between border border-amber-500/40 relative">
+                            <div class="flex items-start justify-between gap-3 mb-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-14 h-14 rounded-full border-2 border-amber-500/60 bg-amazon-800 flex items-center justify-center text-amber-400 text-xl font-bold shrink-0 shadow-inner">
+                                        <i class="fa-solid fa-award"></i>
+                                    </div>
+                                    <div>
+                                        <span class="px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-400 text-emerald-400 text-[10px] font-bold uppercase">Ao Vivo / Ativo</span>
+                                        <h4 class="font-display font-bold text-lg text-white mt-1">Torneio Bronze</h4>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-[10px] uppercase text-emerald-300/70 font-semibold block">Começa em</span>
+                                    <span class="font-mono text-sm font-bold text-emerald-200 bg-amazon-900 px-2 py-0.5 rounded border border-emerald-800">02:32:45</span>
+                                </div>
+                            </div>
+
+                            <div class="space-y-2 mb-4 text-xs md:text-sm text-emerald-200/80">
+                                <p>Entrada: <span class="text-amber-400 font-semibold">100 bananas</span> (R$ 0,10)</p>
+                                <p>Prêmio Total: <span class="text-amber-400 font-bold">R$ 5,00</span></p>
+                                <div>
+                                    <div class="flex justify-between text-[10px] text-emerald-300/70 mb-1 font-mono">
+                                        <span>Vagas preenchidas</span>
+                                        <span>84/128</span>
+                                    </div>
+                                    <div class="w-full bg-amazon-900 rounded-full h-2 overflow-hidden border border-amber-500/20">
+                                        <div class="bg-gradient-to-r from-amber-500 to-amber-400 h-full rounded-full" style="width: 65%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button onclick="inscreverTorneio('Bronze')" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold text-sm shadow transition-all">
+                                Inscrever-se Agora
+                            </button>
+                        </div>
+
+                        <!-- CARD ATIVO 2 -->
+                        <div class="glass-panel rounded-2xl p-5 flex flex-col justify-between border border-amber-500/40 relative">
+                            <div class="flex items-start justify-between gap-3 mb-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-14 h-14 rounded-full border-2 border-amber-400/80 bg-amazon-800 flex items-center justify-center text-amber-300 text-xl font-bold shrink-0 shadow-inner">
+                                        <i class="fa-solid fa-crown"></i>
+                                    </div>
+                                    <div>
+                                        <span class="px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-400 text-emerald-400 text-[10px] font-bold uppercase">Inscrições Abertas</span>
+                                        <h4 class="font-display font-bold text-lg text-white mt-1">Torneio Ouro</h4>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-[10px] uppercase text-emerald-300/70 font-semibold block">Começa em</span>
+                                    <span class="font-mono text-sm font-bold text-emerald-200 bg-amazon-900 px-2 py-0.5 rounded border border-emerald-800">05:12:20</span>
+                                </div>
+                            </div>
+
+                            <div class="space-y-2 mb-4 text-xs md:text-sm text-emerald-200/80">
+                                <p>Entrada: <span class="text-amber-400 font-semibold">1.000 bananas</span> (R$ 1,00)</p>
+                                <p>Prêmio Total: <span class="text-amber-400 font-bold">R$ 50,00</span></p>
+                                <div>
+                                    <div class="flex justify-between text-[10px] text-emerald-300/70 mb-1 font-mono">
+                                        <span>Vagas preenchidas</span>
+                                        <span>61/128</span>
+                                    </div>
+                                    <div class="w-full bg-amazon-900 rounded-full h-2 overflow-hidden border border-amber-500/20">
+                                        <div class="bg-gradient-to-r from-amber-500 to-amber-400 h-full rounded-full" style="width: 48%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button onclick="inscreverTorneio('Ouro')" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold text-sm shadow transition-all">
+                                Inscrever-se Agora
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- CONTEÚDO 2: HISTÓRICO DE TORNEIOS (OCULTO INICIALMENTE) -->
+                <div id="tournamentsHistorico" class="space-y-3 hidden">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-300/80 mb-2">Torneios Encerrados</h3>
+                    
+                    <!-- ITEM HISTÓRICO 1 -->
+                    <div class="glass-panel p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-emerald-800/60">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-amber-400 font-bold shrink-0">
+                                <i class="fa-solid fa-flag-checkered"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-sm text-white">Torneio Relâmpago Amazonense</h4>
+                                <p class="text-xs text-emerald-200/70">Campeão: <span class="text-amber-400 font-semibold">JaguarPro_AM</span> • 64 Participantes</p>
+                                <span class="text-[10px] text-emerald-400/50 font-mono">Realizado em: 10/05/2025</span>
+                            </div>
+                        </div>
+                        <div class="text-right sm:text-right w-full sm:w-auto flex sm:flex-col justify-between items-center sm:items-end">
+                            <span class="text-[10px] uppercase text-emerald-300/60 font-semibold">Prêmio Distribuído</span>
+                            <span class="font-mono font-bold text-amber-400 text-sm">R$ 25,00</span>
+                        </div>
+                    </div>
+
+                    <!-- ITEM HISTÓRICO 2 -->
+                    <div class="glass-panel p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-emerald-800/60">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-amber-400 font-bold shrink-0">
+                                <i class="fa-solid fa-flag-checkered"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-sm text-white">Torneio Ouro Especial de Estreia</h4>
+                                <p class="text-xs text-emerald-200/70">Campeão: <span class="text-amber-400 font-semibold">TucanoLendário</span> • 128 Participantes</p>
+                                <span class="text-[10px] text-emerald-400/50 font-mono">Realizado em: 01/05/2025</span>
+                            </div>
+                        </div>
+                        <div class="text-right sm:text-right w-full sm:w-auto flex sm:flex-col justify-between items-center sm:items-end">
+                            <span class="text-[10px] uppercase text-emerald-300/60 font-semibold">Prêmio Distribuído</span>
+                            <span class="font-mono font-bold text-amber-400 text-sm">R$ 50,00</span>
+                        </div>
+                    </div>
+
+                    <!-- ITEM HISTÓRICO 3 -->
+                    <div class="glass-panel p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-emerald-800/60">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-emerald-500/20 border border-emerald-400/50 flex items-center justify-center text-emerald-400 font-bold shrink-0">
+                                <i class="fa-solid fa-flag-checkered"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-sm text-white">Torneio Bronze Iniciantes</h4>
+                                <p class="text-xs text-emerald-200/70">Campeão: <span class="text-amber-400 font-semibold">BotoMaster</span> • 128 Participantes</p>
+                                <span class="text-[10px] text-emerald-400/50 font-mono">Realizado em: 28/04/2025</span>
+                            </div>
+                        </div>
+                        <div class="text-right sm:text-right w-full sm:w-auto flex sm:flex-col justify-between items-center sm:items-end">
+                            <span class="text-[10px] uppercase text-emerald-300/60 font-semibold">Prêmio Distribuído</span>
+                            <span class="font-mono font-bold text-amber-400 text-sm">R$ 5,00</span>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+        <!-- SEÇÃO LOJA DE BANANAS -->
+        <div id="storeSection" class="hidden flex-1 p-4 md:p-8 z-10 flex items-center justify-center">
+            <div class="max-w-5xl w-full glass-card rounded-3xl p-6 md:p-8 border border-emerald-500/30 shadow-2xl relative overflow-hidden">
+                <div class="flex items-start justify-between mb-8">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center text-amazon-900 shadow-lg text-2xl">
+                            <i class="fa-solid fa-banana"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-display font-black text-2xl md:text-3xl text-white tracking-wide">Loja de Bananas</h2>
+                            <p class="text-xs md:text-sm text-emerald-200/80">Compre bananas e participe dos torneios!</p>
+                        </div>
+                    </div>
+
+                    <div class="hidden lg:flex items-center gap-4 bg-amazon-900/60 border border-amber-500/20 px-4 py-3 rounded-2xl max-w-xs">
+                        <div class="w-14 h-14 rounded-full bg-amber-600/30 border border-amber-400/40 flex items-center justify-center text-amber-400 text-2xl shrink-0">
+                            <i class="fa-solid fa-face-laugh"></i>
+                        </div>
+                        <p class="text-[11px] text-amber-200/90 italic font-medium leading-tight">
+                            "Bananas são a moeda da nossa floresta."
+                        </p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-4">
+                    <div class="glass-panel rounded-2xl p-5 flex flex-col items-center text-center border border-amber-500/30 relative group hover:border-amber-400 transition-all">
+                        <div class="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-400/30 flex items-center justify-center text-amber-400 text-3xl mb-4 shadow-inner">
+                            <i class="fa-solid fa-banana"></i>
+                        </div>
+                        <h4 class="font-display font-black text-xl text-white mb-1">100 bananas</h4>
+                        <p class="font-mono font-bold text-amber-400 text-lg mb-3">R$ 0,10</p>
+                        <p class="text-xs text-emerald-300/70 mb-6 font-medium">1 Inscrição Bronze</p>
+                        <button onclick="comprarBananas(100, 0.10)" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-amazon-900 font-extrabold text-sm shadow-lg mt-auto">Comprar</button>
+                    </div>
+
+                    <div class="glass-panel rounded-2xl p-5 flex flex-col items-center text-center border border-amber-500/40 relative group hover:border-amber-400 transition-all bg-emerald-950/30">
+                        <div class="absolute -top-3 bg-amber-500 text-amazon-900 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full shadow">Mais Popular</div>
+                        <div class="w-16 h-16 rounded-full bg-amber-500/15 border border-amber-400/40 flex items-center justify-center text-amber-400 text-3xl mb-4 shadow-inner">
+                            <i class="fa-solid fa-banana"></i>
+                        </div>
+                        <h4 class="font-display font-black text-xl text-white mb-1">1.000 bananas</h4>
+                        <p class="font-mono font-bold text-amber-400 text-lg mb-3">R$ 1,00</p>
+                        <p class="text-xs text-emerald-300/70 mb-6 font-medium">10 Inscrições Bronze<br/>ou 1 Ouro</p>
+                        <button onclick="comprarBananas(1000, 1.00)" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-amazon-900 font-extrabold text-sm shadow-lg mt-auto">Comprar</button>
+                    </div>
+
+                    <div class="glass-panel rounded-2xl p-5 flex flex-col items-center text-center border border-amber-500/30 relative group hover:border-amber-400 transition-all">
+                        <div class="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-400/30 flex items-center justify-center text-amber-400 text-3xl mb-4 shadow-inner">
+                            <i class="fa-solid fa-coins"></i>
+                        </div>
+                        <h4 class="font-display font-black text-xl text-white mb-1">10.000 bananas</h4>
+                        <p class="font-mono font-bold text-amber-400 text-lg mb-3">R$ 10,00</p>
+                        <p class="text-xs text-emerald-300/70 mb-6 font-medium">100 Inscrições Bronze<br/>ou 10 Ouro</p>
+                        <button onclick="comprarBananas(10000, 10.00)" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-amazon-900 font-extrabold text-sm shadow-lg mt-auto">Comprar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO CARTEIRA E SAQUES -->
+        <div id="walletSection" class="hidden flex-1 p-4 md:p-8 z-10 flex items-center justify-center">
+            <div class="max-w-5xl w-full glass-card rounded-3xl p-6 md:p-8 border border-emerald-500/30 shadow-2xl relative">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center text-amazon-900 shadow-lg">
+                        <i class="fa-solid fa-wallet"></i>
+                    </div>
+                    <h2 class="font-display font-black text-xl md:text-2xl text-white tracking-wide">Carteira e Saques</h2>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                    <div class="lg:col-span-5 glass-panel rounded-2xl p-6 flex flex-col justify-between border border-emerald-500/30">
+                        <div>
+                            <span class="text-xs uppercase text-emerald-300/80 font-bold tracking-wider block mb-1">Saldo de prêmios disponível</span>
+                            <h3 class="font-display font-black text-4xl text-amber-400 mb-3 tracking-tight">R$ <span id="walletSaldoDisplay">18,50</span></h3>
+                            <div class="flex items-center gap-2 text-emerald-400 text-xs font-semibold mb-6">
+                                <i class="fa-solid fa-circle-check"></i>
+                                <span>Disponível para saque</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 py-4 border-t border-b border-emerald-800/60 mb-6">
+                                <div>
+                                    <span class="text-[11px] text-emerald-300/70 block uppercase font-semibold">Em análise</span>
+                                    <span class="font-mono font-bold text-white text-base">R$ 0,00</span>
+                                </div>
+                                <div>
+                                    <span class="text-[11px] text-emerald-300/70 block uppercase font-semibold">Total recebido</span>
+                                    <span class="font-mono font-bold text-white text-base">R$ 32,00</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <button onclick="solicitarSaque()" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-amazon-900 font-extrabold text-base shadow-lg mb-2">Solicitar saque</button>
+                            <span class="text-[11px] text-emerald-400/60 text-center block">Saque mínimo: R$ 10,00</span>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-7 glass-panel rounded-2xl p-6 flex flex-col justify-between border border-emerald-500/30">
+                        <div>
+                            <div class="flex items-center gap-2 p-1 bg-amazon-900/90 rounded-xl border border-emerald-800/60 mb-6">
+                                <button type="button" onclick="mudarAbaCarteira('cpf', this)" class="wallet-tab flex-1 py-2 px-4 rounded-lg bg-amber-500/15 border border-amber-500/60 text-amber-400 text-xs font-bold text-center">CPF</button>
+                                <button type="button" onclick="mudarAbaCarteira('pix', this)" class="wallet-tab flex-1 py-2 px-4 rounded-lg text-emerald-200/70 hover:text-white text-xs font-bold text-center">Chave Pix</button>
+                                <button type="button" onclick="mudarAbaCarteira('historico', this)" class="wallet-tab flex-1 py-2 px-4 rounded-lg text-emerald-200/70 hover:text-white text-xs font-bold text-center">Saques</button>
+                            </div>
+
+                            <div id="walletTabCpf" class="space-y-4">
+                                <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-300/80">Verificação de identidade</h4>
+                                <div>
+                                    <span class="text-[11px] text-emerald-200/70 block mb-1">Nome completo</span>
+                                    <div class="w-full px-3.5 py-2.5 rounded-xl amazon-input text-sm text-white font-semibold">João da Silva</div>
+                                </div>
+                                <div class="flex items-center justify-between p-3 rounded-xl bg-amazon-900/80 border border-emerald-800/60">
+                                    <div>
+                                        <span class="text-[11px] text-emerald-200/70 block">CPF</span>
+                                        <span class="font-mono font-semibold text-white">***.***.***-42</span>
+                                    </div>
+                                    <span class="px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-400 text-emerald-400 text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> Verificado</span>
+                                </div>
+                                <div class="flex items-center justify-between p-3 rounded-xl bg-amazon-900/80 border border-emerald-800/60">
+                                    <div>
+                                        <span class="text-[11px] text-emerald-200/70 block">Data de nascimento</span>
+                                        <span class="font-mono font-semibold text-white">**/**/****</span>
+                                    </div>
+                                    <span class="px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-400 text-emerald-400 text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> Verificado</span>
+                                </div>
+                            </div>
+
+                            <div id="walletTabPix" class="space-y-4 hidden">
+                                <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-300/80">Configuração de Chave Pix</h4>
+                                <div>
+                                    <label class="block text-xs font-semibold text-emerald-200/80 mb-1">Tipo de Chave Pix</label>
+                                    <select class="w-full px-3.5 py-2.5 rounded-xl amazon-input text-sm">
+                                        <option>CPF (***.***.***-42)</option>
+                                        <option>E-mail</option>
+                                        <option>Telefone</option>
+                                        <option>Chave Aleatória</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-emerald-200/80 mb-1">Chave Pix Cadastrada</label>
+                                    <input type="text" value="joao.silva@email.com" class="w-full px-3.5 py-2.5 rounded-xl amazon-input text-sm font-semibold text-white">
+                                </div>
+                            </div>
+
+                            <div id="walletTabHistorico" class="space-y-3 hidden">
+                                <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-300/80">Histórico de Saques</h4>
+                                <div class="p-3 rounded-xl bg-amazon-900/80 border border-emerald-800/60 flex items-center justify-between">
+                                    <div>
+                                        <span class="text-xs font-bold text-white block">Saque via Pix</span>
+                                        <span class="text-[10px] text-emerald-400/70">15/10/2026 - Concluído</span>
+                                    </div>
+                                    <span class="font-mono font-bold text-amber-400 text-sm">R$ 32,00</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-6 mt-auto">
+                            <button type="button" onclick="showToast('Atualizado', 'Seus dados foram verificados com sucesso.')" class="w-full py-3 px-4 rounded-xl bg-amazon-900 hover:bg-amazon-800 border border-emerald-500/40 text-emerald-200 font-bold text-xs uppercase tracking-wider shadow">Atualizar dados</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO EDITAR PERFIL -->
+        <div id="profileSection" class="hidden flex-1 p-4 md:p-8 z-10 overflow-y-auto">
+            <div class="max-w-5xl mx-auto glass-card rounded-3xl p-5 md:p-8 border border-emerald-500/30 shadow-2xl relative">
+                <div class="flex items-center gap-4 mb-6">
+                    <button onclick="mudarAba('home')" class="w-9 h-9 rounded-full bg-amazon-800/90 border border-emerald-500/30 flex items-center justify-center text-emerald-200 hover:text-white">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <h2 class="font-display font-black text-xl md:text-2xl text-white tracking-wide">Editar Perfil</h2>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    <div class="lg:col-span-4 flex flex-col items-center text-center space-y-5">
+                        <div class="relative w-48 h-48 sm:w-56 sm:h-56 rounded-full border-4 border-emerald-500/80 bg-amazon-900/90 p-2 shadow-[0_0_30px_rgba(16,185,129,0.3)] flex items-center justify-center overflow-hidden">
+                            <div id="mainAvatarContainer" class="w-full h-full rounded-full bg-gradient-to-b from-emerald-900/40 to-amazon-900 flex flex-col items-center justify-center border border-emerald-500/20 relative overflow-hidden">
+                                <i id="avatarPlaceholderIcon" class="fa-solid fa-cat text-6xl sm:text-7xl text-amber-400 mb-2 drop-shadow"></i>
+                                <span id="avatarPlaceholderText" class="text-[10px] text-emerald-300/70 font-semibold uppercase tracking-wider px-2 text-center">[ Imagem do Avatar ]</span>
+                                <img id="mainAvatarImage" src="" alt="Avatar do Personagem" class="hidden w-full h-full object-cover rounded-full">
+                            </div>
+                        </div>
+
+                        <button type="button" onclick="showToast('Sincronizando', 'Selecione uma opção ao lado para alterar seu avatar.')" class="px-6 py-2 rounded-full border border-amber-500/60 bg-amazon-800/60 text-amber-300 font-semibold text-xs sm:text-sm flex items-center gap-2">
+                            <span>Alterar avatar</span>
+                            <i class="fa-solid fa-chevron-right text-xs"></i>
+                        </button>
+
+                        <div class="w-full space-y-3 pt-2 text-left">
+                            <div>
+                                <label class="block text-xs font-semibold text-emerald-200/80 mb-1">Nome de exibição</label>
+                                <div class="relative">
+                                    <input type="text" id="profileDisplayName" maxlength="20" value="TucanoLendário" oninput="atualizarContadorNome(this)" class="w-full px-3.5 py-2.5 rounded-xl amazon-input text-sm font-semibold text-white pr-16">
+                                    <span id="nameCounter" class="absolute right-3 top-2.5 text-[11px] text-emerald-400/60 font-mono">14/20</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-emerald-200/80 mb-1">Identificador</label>
+                                <div class="relative flex items-center">
+                                    <input type="text" id="profileHandle" value="@tucanolendario" class="w-full px-3.5 py-2.5 rounded-xl amazon-input text-sm text-emerald-200/90 pr-10">
+                                    <button type="button" onclick="copiarHandle()" title="Copiar identificador" class="absolute right-3 text-amber-400/80">
+                                        <i class="fa-regular fa-copy"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-8 space-y-5">
+                        <h3 class="font-display font-bold text-lg md:text-xl text-white">Personalize seu personagem</h3>
+                        <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 p-1.5 bg-amazon-900/90 border border-emerald-500/20 rounded-2xl text-xs font-semibold">
+                            <button type="button" onclick="selecionarCategoria('rosto', this)" class="cat-tab flex flex-col items-center justify-center p-2 rounded-xl bg-amber-500/10 border border-amber-500/60 text-amber-400"><i class="fa-solid fa-face-smile text-lg mb-1"></i><span>Rosto</span></button>
+                            <button type="button" onclick="selecionarCategoria('pelos', this)" class="cat-tab flex flex-col items-center justify-center p-2 rounded-xl text-emerald-300/70"><i class="fa-solid fa-paw text-lg mb-1"></i><span>Pelos</span></button>
+                            <button type="button" onclick="selecionarCategoria('olhos', this)" class="cat-tab flex flex-col items-center justify-center p-2 rounded-xl text-emerald-300/70"><i class="fa-solid fa-eye text-lg mb-1"></i><span>Olhos</span></button>
+                            <button type="button" onclick="selecionarCategoria('roupas', this)" class="cat-tab flex flex-col items-center justify-center p-2 rounded-xl text-emerald-300/70"><i class="fa-solid fa-shirt text-lg mb-1"></i><span>Roupas</span></button>
+                            <button type="button" onclick="selecionarCategoria('acessorios', this)" class="cat-tab flex flex-col items-center justify-center p-2 rounded-xl text-emerald-300/70"><i class="fa-solid fa-robot text-lg mb-1"></i><span>Acessórios</span></button>
+                            <button type="button" onclick="selecionarCategoria('moldura', this)" class="cat-tab flex flex-col items-center justify-center p-2 rounded-xl text-emerald-300/70"><i class="fa-solid fa-border-all text-lg mb-1"></i><span>Moldura</span></button>
+                        </div>
+
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5 pt-2">
+                            <div onclick="selecionarAnimal('Onça', this)" class="animal-card rounded-2xl border-2 border-emerald-500 bg-emerald-950/40 p-3 flex flex-col items-center justify-between h-32 cursor-pointer relative group">
+                                <div class="w-full flex-1 rounded-xl bg-amazon-900/80 border border-emerald-500/20 flex flex-col items-center justify-center overflow-hidden"><i class="fa-solid fa-cat text-3xl text-amber-400 opacity-60"></i><span class="text-[9px] text-emerald-400/50 uppercase mt-1">[ Slot Onça ]</span></div>
+                                <span class="text-xs font-bold text-emerald-100 mt-2">Onça</span>
+                            </div>
+                            <div onclick="selecionarAnimal('Tucano', this)" class="animal-card rounded-2xl border border-emerald-800/60 bg-amazon-900/60 p-3 flex flex-col items-center justify-between h-32 cursor-pointer relative group">
+                                <div class="w-full flex-1 rounded-xl bg-amazon-900/80 border border-emerald-500/20 flex flex-col items-center justify-center overflow-hidden"><i class="fa-solid fa-crow text-3xl text-amber-400 opacity-60"></i><span class="text-[9px] text-emerald-400/50 uppercase mt-1">[ Slot Tucano ]</span></div>
+                                <span class="text-xs font-bold text-emerald-100 mt-2">Tucano</span>
+                            </div>
+                            <div onclick="selecionarAnimal('Arara', this)" class="animal-card rounded-2xl border border-emerald-800/60 bg-amazon-900/60 p-3 flex flex-col items-center justify-between h-32 cursor-pointer relative group">
+                                <div class="w-full flex-1 rounded-xl bg-amazon-900/80 border border-emerald-500/20 flex flex-col items-center justify-center overflow-hidden"><i class="fa-solid fa-feather text-3xl text-red-400 opacity-60"></i><span class="text-[9px] text-emerald-400/50 uppercase mt-1">[ Slot Arara ]</span></div>
+                                <span class="text-xs font-bold text-emerald-100 mt-2">Arara</span>
+                            </div>
+                            <div onclick="selecionarAnimal('Macaco', this)" class="animal-card rounded-2xl border border-emerald-800/60 bg-amazon-900/60 p-3 flex flex-col items-center justify-between h-32 cursor-pointer relative group">
+                                <div class="w-full flex-1 rounded-xl bg-amazon-900/80 border border-emerald-500/20 flex flex-col items-center justify-center overflow-hidden"><i class="fa-solid fa-face-laugh text-3xl text-amber-600 opacity-60"></i><span class="text-[9px] text-emerald-400/50 uppercase mt-1">[ Slot Macaco ]</span></div>
+                                <span class="text-xs font-bold text-emerald-100 mt-2">Macaco</span>
+                            </div>
+                            <div onclick="selecionarAnimal('Jacaré', this)" class="animal-card rounded-2xl border border-emerald-800/60 bg-amazon-900/60 p-3 flex flex-col items-center justify-between h-32 cursor-pointer relative group">
+                                <div class="w-full flex-1 rounded-xl bg-amazon-900/80 border border-emerald-500/20 flex flex-col items-center justify-center overflow-hidden"><i class="fa-solid fa-dragon text-3xl text-emerald-500 opacity-60"></i><span class="text-[9px] text-emerald-400/50 uppercase mt-1">[ Slot Jacaré ]</span></div>
+                                <span class="text-xs font-bold text-emerald-100 mt-2">Jacaré</span>
+                            </div>
+                            <div onclick="selecionarAnimal('Boto', this)" class="animal-card rounded-2xl border border-emerald-800/60 bg-amazon-900/60 p-3 flex flex-col items-center justify-between h-32 cursor-pointer relative group">
+                                <div class="w-full flex-1 rounded-xl bg-amazon-900/80 border border-emerald-500/20 flex flex-col items-center justify-center overflow-hidden"><i class="fa-solid fa-fish text-3xl text-pink-400 opacity-60"></i><span class="text-[9px] text-emerald-400/50 uppercase mt-1">[ Slot Boto ]</span></div>
+                                <span class="text-xs font-bold text-emerald-100 mt-2">Boto</span>
+                            </div>
+                            <div onclick="selecionarAnimal('Arraia', this)" class="animal-card rounded-2xl border border-emerald-800/60 bg-amazon-900/60 p-3 flex flex-col items-center justify-between h-32 cursor-pointer relative group">
+                                <div class="w-full flex-1 rounded-xl bg-amazon-900/80 border border-emerald-500/20 flex flex-col items-center justify-center overflow-hidden"><i class="fa-solid fa-water text-3xl text-cyan-400 opacity-60"></i><span class="text-[9px] text-emerald-400/50 uppercase mt-1">[ Slot Arraia ]</span></div>
+                                <span class="text-xs font-bold text-emerald-100 mt-2">Arraia</span>
+                            </div>
+                            <div onclick="selecionarAnimal('Capivara', this)" class="animal-card rounded-2xl border border-emerald-800/60 bg-amazon-900/60 p-3 flex flex-col items-center justify-between h-32 cursor-pointer relative group">
+                                <div class="w-full flex-1 rounded-xl bg-amazon-900/80 border border-emerald-500/20 flex flex-col items-center justify-center overflow-hidden"><i class="fa-solid fa-hippo text-3xl text-amber-700 opacity-60"></i><span class="text-[9px] text-emerald-400/50 uppercase mt-1">[ Slot Capivara ]</span></div>
+                                <span class="text-xs font-bold text-emerald-100 mt-2">Capivara</span>
+                            </div>
+                        </div>
+
+                        <div class="pt-4">
+                            <button type="button" onclick="salvarPerfil()" class="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-amazon-900 font-black text-base shadow-lg">Salvar alterações</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+<!-- ================================================================= -->
+        <!-- NOVA SEÇÃO: CONFIGURAÇÕES (MÚSICA, SONS, SAIR E EXCLUIR CONTA) -->
+        <!-- ================================================================= -->
+        <div id="settingsSection" class="hidden flex-1 p-4 md:p-8 z-10 overflow-y-auto">
+            <div class="max-w-4xl mx-auto glass-card rounded-3xl p-6 md:p-8 border border-emerald-500/30 shadow-2xl relative">
+                
+                <div class="flex items-center gap-4 mb-6 border-b border-emerald-800/50 pb-4">
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center text-amazon-900 shadow-lg text-2xl">
+                        <i class="fa-solid fa-gear"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-display font-black text-2xl md:text-3xl text-white tracking-wide">Configurações</h2>
+                        <p class="text-xs md:text-sm text-emerald-200/80">Gerencie suas preferências de áudio e dados da conta.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <!-- GRUPO DE ÁUDIO -->
+                    <div class="glass-panel rounded-2xl p-5 border border-emerald-500/20 space-y-4">
+                        <h3 class="font-display font-bold text-lg text-amber-400 flex items-center gap-2">
+                            <i class="fa-solid fa-volume-high"></i> Preferências de Áudio
+                        </h3>
+                        
+                        <!-- Música OFF / ON -->
+                        <div class="flex items-center justify-between p-3 rounded-xl bg-amazon-900/60 border border-emerald-800/40">
+                            <div>
+                                <h4 class="font-bold text-sm text-white">Música de Fundo</h4>
+                                <p class="text-xs text-emerald-200/70">Ativar ou desativar trilha sonora temática.</p>
+                            </div>
+                            <div class="flex items-center bg-amazon-900 rounded-xl p-1 border border-emerald-700/50">
+                                <button type="button" id="btnMusicOff" onclick="toggleMusic(false)" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-red-600/30 border border-red-500 text-red-300">OFF</button>
+                                <button type="button" id="btnMusicOn" onclick="toggleMusic(true)" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all text-emerald-300">ON</button>
+                            </div>
+                        </div>
+
+                        <!-- Sons OFF / ON -->
+                        <div class="flex items-center justify-between p-3 rounded-xl bg-amazon-900/60 border border-emerald-800/40">
+                            <div>
+                                <h4 class="font-bold text-sm text-white">Efeitos Sonoros</h4>
+                                <p class="text-xs text-emerald-200/70">Sons de cliques, capturas de peças e notificações.</p>
+                            </div>
+                            <div class="flex items-center bg-amazon-900 rounded-xl p-1 border border-emerald-700/50">
+                                <button type="button" id="btnSoundOff" onclick="toggleSound(false)" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-red-600/30 border border-red-500 text-red-300">OFF</button>
+                                <button type="button" id="btnSoundOn" onclick="toggleSound(true)" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all text-emerald-300">ON</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- GRUPO DE CONTA -->
+                    <div class="glass-panel rounded-2xl p-5 border border-emerald-500/20 space-y-4">
+                        <h3 class="font-display font-bold text-lg text-amber-400 flex items-center gap-2">
+                            <i class="fa-solid fa-shield-halved"></i> Gerenciamento de Conta
+                        </h3>
+
+                        <!-- Sair da Conta -->
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-amazon-900/60 border border-emerald-800/40">
+                            <div>
+                                <h4 class="font-bold text-sm text-white">Sair da Sessão</h4>
+                                <p class="text-xs text-emerald-200/70">Encerra sua sessão atual neste dispositivo.</p>
+                            </div>
+                            <button type="button" onclick="logout()" class="py-2 px-4 rounded-xl bg-amazon-800 hover:bg-amazon-700 border border-emerald-500/40 text-emerald-200 font-bold text-xs flex items-center justify-center gap-2 shadow transition-all">
+                                <i class="fa-solid fa-right-from-bracket"></i> Sair de Conta
+                            </button>
+                        </div>
+
+                        <!-- Excluir Conta -->
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-red-950/20 border border-red-600/30">
+                            <div>
+                                <h4 class="font-bold text-sm text-red-400">Excluir Conta Permanentemente</h4>
+                                <p class="text-xs text-red-200/70">Apaga todos os seus dados, saldo de prêmios e bananas.</p>
+                            </div>
+                            <button type="button" onclick="abrirModalExcluir()" class="py-2 px-4 rounded-xl bg-red-600/80 hover:bg-red-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow transition-all">
+                                <i class="fa-solid fa-triangle-exclamation"></i> Excluir Conta
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODAL DE CONFIRMAÇÃO DE EXCLUSÃO DE CONTA -->
+    <div id="deleteAccountModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+        <div class="glass-card w-full max-w-md rounded-3xl p-6 sm:p-8 border border-red-500/40 shadow-2xl text-center space-y-4">
+            <div class="w-16 h-16 rounded-full bg-red-500/20 border border-red-500/50 flex items-center justify-center text-red-400 text-3xl mx-auto shadow-inner">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 class="font-display font-black text-xl text-white">Deseja realmente excluir sua conta?</h3>
+            <p class="text-xs sm:text-sm text-red-200/80 leading-relaxed">
+                Esta ação é <strong class="text-red-400">irreversível</strong>. Todo o seu saldo de prêmios, bananas acumuladas e histórico de torneios serão perdidos permanentemente.
+            </p>
+            <div class="flex gap-3 pt-2">
+                <button type="button" onclick="fecharModalExcluir()" class="flex-1 py-3 px-4 rounded-xl bg-amazon-900 border border-emerald-600/40 text-emerald-200 font-bold text-sm hover:bg-amazon-800">
+                    Cancelar
+                </button>
+                <button type="button" onclick="confirmarExclusaoConta()" class="flex-1 py-3 px-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-sm shadow-lg shadow-red-950/50">
+                    Sim, excluir
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toastNotification" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="bg-amazon-800 border border-amber-400 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3">
+            <i class="fa-solid fa-circle-check text-amber-400 text-xl"></i>
+            <div>
+                <h5 id="toastTitle" class="font-bold text-sm text-amber-300">Sucesso!</h5>
+                <p id="toastMessage" class="text-xs text-emerald-100">Ação realizada.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT COMPLETO INTEGRADO -->
+    <script>
+        let userBananas = 2450;
+        let userSaldo = 18.50;
+
+        // Estados das configurações de áudio
+        let appSettings = {
+            music: true,
+            sound: true
+        };
+
+        const userCustomization = {
+            animal: 'Onça',
+            categoria: 'rosto'
+        };
+
+        const avatarMap = {
+            'Onça': '', 'Tucano': '', 'Arara': '', 'Macaco': '',
+            'Jacaré': '', 'Boto': '', 'Arraia': '', 'Capivara': ''
+        };
+
+        const animalIcons = {
+            'Onça': 'fa-cat', 'Tucano': 'fa-crow', 'Arara': 'fa-feather', 'Macaco': 'fa-face-laugh',
+            'Jacaré': 'fa-dragon', 'Boto': 'fa-fish', 'Arraia': 'fa-water', 'Capivara': 'fa-hippo'
+        };
+
+        // CONTROLE DE ÁUDIO (MÚSICA E SONS OFF/ON)
+        function toggleMusic(status) {
+            appSettings.music = status;
+            const btnOff = document.getElementById('btnMusicOff');
+            const btnOn = document.getElementById('btnMusicOn');
+
+            if (status) {
+                btnOn.className = "px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-emerald-600/30 border border-emerald-500 text-emerald-300";
+                btnOff.className = "px-4 py-1.5 rounded-lg text-xs font-bold transition-all text-emerald-300/60";
+                showToast('Música Ativada', 'A trilha sonora foi ligada.');
+            } else {
+                btnOff.className = "px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-red-600/30 border border-red-500 text-red-300";
+                btnOn.className = "px-4 py-1.5 rounded-lg text-xs font-bold transition-all text-emerald-300/60";
+                showToast('Música Desativada', 'A trilha sonora foi silenciada.');
+            }
+        }
+
+        function toggleSound(status) {
+            appSettings.sound = status;
+            const btnOff = document.getElementById('btnSoundOff');
+            const btnOn = document.getElementById('btnSoundOn');
+
+            if (status) {
+                btnOn.className = "px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-emerald-600/30 border border-emerald-500 text-emerald-300";
+                btnOff.className = "px-4 py-1.5 rounded-lg text-xs font-bold transition-all text-emerald-300/60";
+                showToast('Efeitos Sonoros', 'Os sons do jogo foram ativados.');
+            } else {
+                btnOff.className = "px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-red-600/30 border border-red-500 text-red-300";
+                btnOn.className = "px-4 py-1.5 rounded-lg text-xs font-bold transition-all text-emerald-300/60";
+                showToast('Efeitos Sonoros', 'Os sons do jogo foram desativados.');
+            }
+        }
+
+        // GERENCIAMENTO DO MODAL DE EXCLUSÃO DE CONTA
+        function abrirModalExcluir() {
+            const modal = document.getElementById('deleteAccountModal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function fecharModalExcluir() {
+            const modal = document.getElementById('deleteAccountModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function confirmarExclusaoConta() {
+            fecharModalExcluir();
+            showToast('Conta Excluída', 'Sua conta foi removida com sucesso do sistema.');
+            setTimeout(() => {
+                logout();
+            }, 1200);
+        }
+
+        // ABAS DE TORNEIOS (ATIVOS vs HISTÓRICO)
+        function mudarAbaTorneios(subaba, elemento) {
+            document.getElementById('tournamentsAtivos').classList.add('hidden');
+            document.getElementById('tournamentsHistorico').classList.add('hidden');
+
+            document.querySelectorAll('.tournament-tab').forEach(tab => {
+                tab.classList.remove('bg-amber-500/15', 'border', 'border-amber-500/60', 'text-amber-400');
+                tab.classList.add('text-emerald-200/70');
+            });
+
+            elemento.classList.remove('text-emerald-200/70');
+            elemento.classList.add('bg-amber-500/15', 'border', 'border-amber-500/60', 'text-amber-400');
+
+            if (subaba === 'ativos') document.getElementById('tournamentsAtivos').classList.remove('hidden');
+            if (subaba === 'historico') document.getElementById('tournamentsHistorico').classList.remove('hidden');
+        }
+
+        function toggleNotificationDropdown(event) {
+            event.stopPropagation();
+            const dropdown = document.getElementById('notificationDropdown');
+            dropdown.classList.toggle('hidden');
+
+            if (!dropdown.classList.contains('hidden')) {
+                marcarTodasLidas();
+            }
+        }
+
+        function marcarTodasLidas() {
+            const unreadBadges = document.querySelectorAll('.unread-badge');
+            unreadBadges.forEach(badge => badge.classList.add('hidden'));
+
+            const unreadPing = document.getElementById('unreadPing');
+            const unreadDot = document.getElementById('unreadDot');
+            if (unreadPing) unreadPing.classList.add('hidden');
+            if (unreadDot) unreadDot.classList.add('hidden');
+        }
+
+        function removerNotificacao(btn, event) {
+            event.stopPropagation();
+            const item = btn.closest('.notif-item');
+            if (item) {
+                item.style.opacity = '0';
+                item.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    item.remove();
+                }, 200);
+            }
+        }
+
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('notificationDropdown');
+            const bellBtn = document.getElementById('notificationBellBtn');
+            if (dropdown && !dropdown.contains(e.target) && !bellBtn.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        function atualizarImagemAvatar() {
+            const mainImg = document.getElementById('mainAvatarImage');
+            const placeholderIcon = document.getElementById('avatarPlaceholderIcon');
+            const placeholderText = document.getElementById('avatarPlaceholderText');
+            
+            const topbarImg = document.getElementById('topbarAvatarImg');
+            const topbarIcon = document.getElementById('topbarIconPlaceholder');
+
+            const animalAtual = userCustomization.animal;
+            const imagemCorrespondente = avatarMap[animalAtual];
+
+            if (imagemCorrespondente && imagemCorrespondente.trim() !== '') {
+                mainImg.src = imagemCorrespondente;
+                mainImg.classList.remove('hidden');
+                placeholderIcon.classList.add('hidden');
+                placeholderText.classList.add('hidden');
+
+                topbarImg.src = imagemCorrespondente;
+                topbarImg.classList.remove('hidden');
+                topbarIcon.classList.add('hidden');
+            } else {
+                mainImg.classList.add('hidden');
+                placeholderIcon.classList.remove('hidden');
+                placeholderText.classList.remove('hidden');
+
+                placeholderIcon.className = `fa-solid ${animalIcons[animalAtual] || 'fa-cat'} text-6xl sm:text-7xl text-amber-400 mb-2 drop-shadow`;
+                placeholderText.textContent = `[ Avatar: ${animalAtual} ]`;
+
+                topbarImg.classList.add('hidden');
+                topbarIcon.classList.remove('hidden');
+                topbarIcon.className = `fa-solid ${animalIcons[animalAtual] || 'fa-cat'}`;
+            }
+        }
+
+        function selecionarAnimal(nomeAnimal, elemento) {
+            userCustomization.animal = nomeAnimal;
+
+            document.querySelectorAll('.animal-card').forEach(card => {
+                card.classList.remove('border-emerald-500', 'bg-emerald-950/40');
+                card.classList.add('border-emerald-800/60', 'bg-amazon-900/60');
+            });
+
+            elemento.classList.remove('border-emerald-800/60', 'bg-amazon-900/60');
+            elemento.classList.add('border-emerald-500', 'bg-emerald-950/40');
+
+            atualizarImagemAvatar();
+            showToast('Combinação Alterada', `Você selecionou a base de avatar: ${nomeAnimal}`);
+        }
+
+        function selecionarCategoria(nomeCat, elemento) {
+            userCustomization.categoria = nomeCat;
+
+            document.querySelectorAll('.cat-tab').forEach(tab => {
+                tab.classList.remove('bg-amber-500/10', 'border', 'border-amber-500/60', 'text-amber-400');
+                tab.classList.add('text-emerald-300/70');
+            });
+
+            elemento.classList.remove('text-emerald-300/70');
+            elemento.classList.add('bg-amber-500/10', 'border', 'border-amber-500/60', 'text-amber-400');
+        }
+
+
+
+        // SISTEMA DE NAVEGAÇÃO DE ABAS PRINCIPAIS (INCLUINDO SETTINGS)
+        function mudarAba(aba) {
+            const sections = {
+                home: document.getElementById('homeSection'),
+                game: document.getElementById('gameSection'),
+                tournaments: document.getElementById('tournamentsSection'),
+                store: document.getElementById('storeSection'),
+                wallet: document.getElementById('walletSection'),
+                profile: document.getElementById('profileSection'),
+                settings: document.getElementById('settingsSection')
+            };
+
+            const navs = {
+                home: document.getElementById('nav-home'),
+                game: document.getElementById('nav-game'),
+                tournaments: document.getElementById('nav-tournaments'),
+                store: document.getElementById('nav-store'),
+                wallet: document.getElementById('nav-wallet'),
+                profile: document.getElementById('nav-profile'),
+                settings: document.getElementById('nav-settings')
+            };
+
+            Object.keys(sections).forEach(key => {
+                if (sections[key]) sections[key].classList.add('hidden');
+                if (navs[key]) {
+                    navs[key].className = "nav-item flex items-center gap-3 px-4 py-2.5 rounded-lg text-emerald-100/70 hover:bg-emerald-900/30 hover:text-white cursor-pointer transition-colors";
+                }
+            });
+
+            if (sections[aba]) sections[aba].classList.remove('hidden');
+            if (navs[aba]) {
+                navs[aba].className = "nav-item flex items-center gap-3 px-4 py-2.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 text-amazon-900 font-bold shadow-md cursor-pointer transition-all";
+            }
+        }
+        
+        function mudarAbaCarteira(subaba, elemento) {
+            document.getElementById('walletTabCpf').classList.add('hidden');
+            document.getElementById('walletTabPix').classList.add('hidden');
+            document.getElementById('walletTabHistorico').classList.add('hidden');
+
+            document.querySelectorAll('.wallet-tab').forEach(tab => {
+                tab.classList.remove('bg-amber-500/15', 'border', 'border-amber-500/60', 'text-amber-400');
+                tab.classList.add('text-emerald-200/70');
+            });
+
+            elemento.classList.remove('text-emerald-200/70');
+            elemento.classList.add('bg-amber-500/15', 'border', 'border-amber-500/60', 'text-amber-400');
+
+            if (subaba === 'cpf') document.getElementById('walletTabCpf').classList.remove('hidden');
+            if (subaba === 'pix') document.getElementById('walletTabPix').classList.remove('hidden');
+            if (subaba === 'historico') document.getElementById('walletTabHistorico').classList.remove('hidden');
+        }
+
+        function comprarBananas(quantidade, valorReais) {
+            userBananas += quantidade;
+            document.getElementById('headerBananas').textContent = userBananas.toLocaleString('pt-BR');
+            showToast('Compra Realizada!', `Você adquiriu ${quantidade} bananas por R$ ${valorReais.toFixed(2).replace('.', ',')}!`);
+        }
+
+        function solicitarSaque() {
+            if (userSaldo < 10) {
+                showToast('Saldo Insuficiente', 'O saque mínimo é de R$ 10,00.');
+                return;
+            }
+            showToast('Saque Solicitado!', 'Sua solicitação de saque via Pix foi enviada para análise.');
+        }
+
+        function salvarPerfil() {
+            const novoNome = document.getElementById('profileDisplayName').value;
+            if (novoNome.trim() !== '') {
+                document.getElementById('displayUsername').textContent = novoNome.trim();
+            }
+            showToast('Perfil Salvo!', 'Seu perfil foi atualizado com sucesso.');
+        }
+
+        function alternarFormulario(modo) {
+            const signup = document.getElementById('signupFormContainer');
+            const login = document.getElementById('loginFormContainer');
+            if (modo === 'login') {
+                signup.classList.add('hidden');
+                login.classList.remove('hidden');
+            } else {
+                login.classList.add('hidden');
+                signup.classList.remove('hidden');
+            }
+        }
+
+        function entrarNoSite(username) {
+            const modal = document.getElementById('authModal');
+            const userDisplay = document.getElementById('displayUsername');
+
+            if (username && username.trim() !== '') {
+                userDisplay.textContent = username.trim();
+                const profileInput = document.getElementById('profileDisplayName');
+                if (profileInput) profileInput.value = username.trim();
+            }
+
+            if (modal) {
+                modal.style.opacity = '0';
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    modal.style.display = 'none';
+                }, 300);
+            }
+
+            mudarAba('home');
+            showToast('Bem-vindo(a)!', `Olá, ${userDisplay.textContent}! Você acessou Damas da Amazônia.`);
+        }
+
+        function realizarCadastro(e) { e.preventDefault(); entrarNoSite(document.getElementById('signupUsername').value); }
+        function realizarLogin(e) { e.preventDefault(); entrarNoSite(document.getElementById('loginUser').value); }
+        function simularEntradaGoogle() { entrarNoSite('JogadorGoogle'); }
+
+        function logout() { 
+            const modal = document.getElementById('authModal');
+            if (modal) {
+                modal.style.display = 'flex';
+                setTimeout(() => { modal.style.opacity = '1'; }, 10);
+                modal.classList.remove('hidden');
+                showToast('Sessão Encerrada', 'Você saiu da sua conta com segurança.');
+            }
+        }
+
+        function inscreverTorneio(tipo) { 
+            showToast('Inscrição Realizada!', `Sua vaga no Torneio ${tipo} foi confirmada.`); 
+        }
+
+        function showToast(title, message) {
+            const toast = document.getElementById('toastNotification');
+            if (!toast) return;
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastMessage').textContent = message;
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3500);
+        }
+
+
+
+        // ================================================================
+        // MOTOR DO JOGO DE DAMAS LOCAL (SEM SERVIDOR OU INTERNET)
+        // Regras implementadas: tabuleiro 8x8, captura obrigatória,
+        // preferência pela maior sequência de capturas e damas voadoras.
+        // ================================================================
+        let draughtsBoardState = [];
+        let draughtsTurnState = 1; // 1 = verde; -1 = dourado
+        let draughtsLegalMoves = [];
+        let draughtsActiveMoves = [];
+        let draughtsSelectedSquare = null;
+        let draughtsPathIndex = 0;
+        let draughtsFinished = false;
+
+        function criarTabuleiroDamas() {
+            const board = Array.from({ length: 8 }, () => Array(8).fill(null));
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 8; c++) if ((r + c) % 2 === 1) board[r][c] = { side: -1, king: false };
+            }
+            for (let r = 5; r < 8; r++) {
+                for (let c = 0; c < 8; c++) if ((r + c) % 2 === 1) board[r][c] = { side: 1, king: false };
+            }
+            return board;
+        }
+
+        function copiarTabuleiroDamas(board) {
+            return board.map(row => row.map(piece => piece ? { side: piece.side, king: piece.king } : null));
+        }
+
+        function dentroDamas(r, c) { return r >= 0 && r < 8 && c >= 0 && c < 8; }
+        const direcoesDamas = [[-1,-1],[-1,1],[1,-1],[1,1]];
+
+        function obterCapturasDaPeca(board, r, c, path = []) {
+            const piece = board[r][c];
+            if (!piece) return [];
+            const results = [];
+
+            if (!piece.king) {
+                for (const [dr, dc] of direcoesDamas) {
+                    const er = r + dr, ec = c + dc;
+                    const lr = r + 2 * dr, lc = c + 2 * dc;
+                    if (!dentroDamas(lr, lc) || !board[er]?.[ec] || board[er][ec].side === piece.side || board[lr][lc]) continue;
+                    const next = copiarTabuleiroDamas(board);
+                    next[r][c] = null;
+                    next[er][ec] = null;
+                    next[lr][lc] = { side: piece.side, king: false };
+                    const step = { from: { r, c }, to: { r: lr, c: lc }, cap: { r: er, c: ec } };
+                    const more = obterCapturasDaPeca(next, lr, lc, path.concat(step));
+                    if (more.length) results.push(...more);
+                    else results.push({ path: path.concat(step) });
+                }
+            } else {
+                for (const [dr, dc] of direcoesDamas) {
+                    let nr = r + dr, nc = c + dc;
+                    while (dentroDamas(nr, nc) && !board[nr][nc]) { nr += dr; nc += dc; }
+                    if (!dentroDamas(nr, nc) || board[nr][nc].side === piece.side) continue;
+                    const enemyR = nr, enemyC = nc;
+                    nr += dr; nc += dc;
+                    while (dentroDamas(nr, nc) && !board[nr][nc]) {
+                        const next = copiarTabuleiroDamas(board);
+                        next[r][c] = null;
+                        next[enemyR][enemyC] = null;
+                        next[nr][nc] = { side: piece.side, king: true };
+                        const step = { from: { r, c }, to: { r: nr, c: nc }, cap: { r: enemyR, c: enemyC } };
+                        const more = obterCapturasDaPeca(next, nr, nc, path.concat(step));
+                        if (more.length) results.push(...more);
+                        else results.push({ path: path.concat(step) });
+                        nr += dr; nc += dc;
+                    }
+                }
+            }
+            return results;
+        }
+
+        function gerarMovimentosDamas(board, side) {
+            const captures = [];
+            for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+                if (board[r][c]?.side === side) captures.push(...obterCapturasDaPeca(board, r, c));
+            }
+            if (captures.length) {
+                const maxCaptures = Math.max(...captures.map(m => m.path.length));
+                return captures.filter(m => m.path.length === maxCaptures);
+            }
+
+            const moves = [];
+            for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+                const piece = board[r][c];
+                if (!piece || piece.side !== side) continue;
+                if (piece.king) {
+                    for (const [dr, dc] of direcoesDamas) {
+                        let nr = r + dr, nc = c + dc;
+                        while (dentroDamas(nr, nc) && !board[nr][nc]) {
+                            moves.push({ path: [{ from: { r, c }, to: { r: nr, c: nc }, cap: null }] });
+                            nr += dr; nc += dc;
+                        }
+                    }
+                } else {
+                    const dr = side === 1 ? -1 : 1;
+                    for (const dc of [-1, 1]) {
+                        const nr = r + dr, nc = c + dc;
+                        if (dentroDamas(nr, nc) && !board[nr][nc]) moves.push({ path: [{ from: { r, c }, to: { r: nr, c: nc }, cap: null }] });
+                    }
+                }
+            }
+            return moves;
+        }
+
+        function contarPecasDamas() {
+            let green = 0, gold = 0;
+            for (const row of draughtsBoardState) for (const p of row) if (p) p.side === 1 ? green++ : gold++;
+            return { green, gold };
+        }
+
+        function renderizarDamas(message = '') {
+            const boardEl = document.getElementById('draughtsBoard');
+            if (!boardEl) return;
+            boardEl.innerHTML = '';
+            const legalDestinations = new Set();
+            if (draughtsSelectedSquare && !draughtsFinished) {
+                for (const move of draughtsActiveMoves) {
+                    const step = move.path[draughtsPathIndex];
+                    if (step) legalDestinations.add(`${step.to.r},${step.to.c}`);
+                }
+            }
+
+            for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+                const square = document.createElement('button');
+                square.type = 'button';
+                square.className = `draughts-square ${(r + c) % 2 === 0 ? 'light' : 'dark'}`;
+                square.setAttribute('aria-label', `Casa ${r + 1}, ${c + 1}${draughtsBoardState[r][c] ? (draughtsBoardState[r][c].side === 1 ? ', peça verde' : ', peça dourada') : ''}`);
+                if (draughtsSelectedSquare?.r === r && draughtsSelectedSquare?.c === c) square.classList.add('selected');
+                if (legalDestinations.has(`${r},${c}`)) square.classList.add('legal');
+                const piece = draughtsBoardState[r][c];
+                if (piece) {
+                    const pieceEl = document.createElement('span');
+                    pieceEl.className = `draughts-piece ${piece.side === 1 ? 'green' : 'gold'}${piece.king ? ' king' : ''}`;
+                    pieceEl.textContent = piece.king ? '♛' : '';
+                    pieceEl.setAttribute('aria-hidden', 'true');
+                    square.appendChild(pieceEl);
+                }
+                square.addEventListener('click', () => clicarCasaDamas(r, c));
+                boardEl.appendChild(square);
+            }
+
+            const counts = contarPecasDamas();
+            document.getElementById('draughtsGreenCount').textContent = `${counts.green} ${counts.green === 1 ? 'peça' : 'peças'}`;
+            document.getElementById('draughtsGoldCount').textContent = `${counts.gold} ${counts.gold === 1 ? 'peça' : 'peças'}`;
+            const turnLabel = document.getElementById('draughtsTurn');
+            if (draughtsFinished) turnLabel.textContent = 'Partida encerrada';
+            else turnLabel.textContent = `Vez do Jogador ${draughtsTurnState === 1 ? 'Verde' : 'Dourado'}`;
+            if (message) document.getElementById('draughtsMessage').textContent = message;
+        }
+
+        function iniciarTurnoDamas(message = '') {
+            draughtsLegalMoves = gerarMovimentosDamas(draughtsBoardState, draughtsTurnState);
+            draughtsSelectedSquare = null;
+            draughtsActiveMoves = [];
+            draughtsPathIndex = 0;
+            if (!draughtsLegalMoves.length) {
+                draughtsFinished = true;
+                const winner = draughtsTurnState === 1 ? 'Dourado' : 'Verde';
+                renderizarDamas(`O Jogador ${winner} venceu: o adversário ficou sem movimentos legais.`);
+                return;
+            }
+            const hasCapture = draughtsLegalMoves.some(m => m.path[0].cap);
+            renderizarDamas(message || (hasCapture ? 'Captura obrigatória: selecione uma peça destacável.' : 'Selecione uma peça sua para ver os movimentos possíveis.'));
+        }
+
+        function clicarCasaDamas(r, c) {
+            if (draughtsFinished) return;
+            const piece = draughtsBoardState[r][c];
+            if (draughtsSelectedSquare) {
+                const candidates = draughtsActiveMoves.filter(m => {
+                    const step = m.path[draughtsPathIndex];
+                    return step && step.to.r === r && step.to.c === c;
+                });
+                if (candidates.length) {
+                    executarPassoDamas(candidates, r, c);
+                    return;
+                }
+                if (draughtsPathIndex > 0) {
+                    renderizarDamas('Você precisa continuar a sequência de capturas com a mesma peça.');
+                    return;
+                }
+            }
+            if (piece && piece.side === draughtsTurnState && draughtsPathIndex === 0) {
+                const options = draughtsLegalMoves.filter(m => m.path[0].from.r === r && m.path[0].from.c === c);
+                if (options.length) {
+                    draughtsSelectedSquare = { r, c };
+                    draughtsActiveMoves = options;
+                    renderizarDamas(options.some(m => m.path[0].cap) ? 'Escolha uma casa de captura destacada.' : 'Escolha uma casa destacada para mover.');
+                } else {
+                    renderizarDamas(draughtsLegalMoves.some(m => m.path[0].cap) ? 'Há captura obrigatória. Escolha uma peça que possa capturar.' : 'Essa peça não tem movimentos legais.');
+                }
+            } else if (draughtsPathIndex === 0) {
+                draughtsSelectedSquare = null;
+                draughtsActiveMoves = [];
+                renderizarDamas('Selecione uma peça do jogador atual.');
+            }
+        }
+
+        function executarPassoDamas(candidates, r, c) {
+            const step = candidates[0].path[draughtsPathIndex];
+            const movingPiece = draughtsBoardState[step.from.r][step.from.c];
+            if (!movingPiece) return;
+            draughtsBoardState[step.from.r][step.from.c] = null;
+            if (step.cap) draughtsBoardState[step.cap.r][step.cap.c] = null;
+            draughtsBoardState[r][c] = movingPiece;
+            draughtsPathIndex++;
+            draughtsSelectedSquare = { r, c };
+            draughtsActiveMoves = candidates;
+
+            const hasContinuation = candidates.some(m => m.path.length > draughtsPathIndex);
+            if (hasContinuation) {
+                renderizarDamas('Continue capturando com esta mesma peça.');
+                return;
+            }
+
+            if (!movingPiece.king && ((movingPiece.side === 1 && r === 0) || (movingPiece.side === -1 && r === 7))) movingPiece.king = true;
+            const wasCapture = Boolean(step.cap);
+            draughtsTurnState *= -1;
+            const nextName = draughtsTurnState === 1 ? 'Verde' : 'Dourado';
+            iniciarTurnoDamas(wasCapture ? `Jogada concluída. Agora é a vez do Jogador ${nextName}.` : `Movimento concluído. Agora é a vez do Jogador ${nextName}.`);
+        }
+
+        function reiniciarDamas() {
+            draughtsBoardState = criarTabuleiroDamas();
+            draughtsTurnState = 1;
+            draughtsLegalMoves = [];
+            draughtsActiveMoves = [];
+            draughtsSelectedSquare = null;
+            draughtsPathIndex = 0;
+            draughtsFinished = false;
+            iniciarTurnoDamas('Nova partida iniciada. O Jogador Verde começa.');
+        }
+
+        function declararEmpateDamas() {
+            if (draughtsFinished) return;
+            if (confirm('Os dois jogadores concordam em encerrar esta partida como empate?')) {
+                draughtsFinished = true;
+                draughtsSelectedSquare = null;
+                draughtsActiveMoves = [];
+                renderizarDamas('Partida encerrada em empate por acordo dos jogadores.');
+            }
+        }
+
+
+        window.addEventListener('DOMContentLoaded', () => {
+            atualizarImagemAvatar();
+            reiniciarDamas();
+        });
+    </script>
+</body>
+</html>
