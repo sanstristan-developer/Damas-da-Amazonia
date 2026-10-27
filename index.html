@@ -952,8 +952,8 @@
                                 <p class="text-xs text-emerald-200/70">Ativar ou desativar trilha sonora temática.</p>
                             </div>
                             <div class="flex items-center bg-amazon-900 rounded-xl p-1 border border-emerald-700/50">
-                                <button type="button" id="btnMusicOff" onclick="toggleMusic(false)" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-red-600/30 border border-red-500 text-red-300">OFF</button>
-                                <button type="button" id="btnMusicOn" onclick="toggleMusic(true)" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all text-emerald-300">ON</button>
+                                <button type="button" id="btnMusicOff" onclick="toggleMusic(false)" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all text-emerald-300/60">OFF</button>
+                                <button type="button" id="btnMusicOn" onclick="toggleMusic(true)" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-emerald-600/30 border border-emerald-500 text-emerald-300">ON</button>
                             </div>
                         </div>
 
@@ -964,8 +964,8 @@
                                 <p class="text-xs text-emerald-200/70">Sons de cliques, capturas de peças e notificações.</p>
                             </div>
                             <div class="flex items-center bg-amazon-900 rounded-xl p-1 border border-emerald-700/50">
-                                <button type="button" id="btnSoundOff" onclick="toggleSound(false)" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-red-600/30 border border-red-500 text-red-300">OFF</button>
-                                <button type="button" id="btnSoundOn" onclick="toggleSound(true)" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all text-emerald-300">ON</button>
+                                <button type="button" id="btnSoundOff" onclick="toggleSound(false)" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all text-emerald-300/60">OFF</button>
+                                <button type="button" id="btnSoundOn" onclick="toggleSound(true)" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-emerald-600/30 border border-emerald-500 text-emerald-300">ON</button>
                             </div>
                         </div>
                     </div>
@@ -1038,6 +1038,9 @@
         </div>
     </div>
 
+    <!-- Música de fundo: usada somente durante partidas de damas -->
+    <audio id="musicaFundo" preload="auto"></audio>
+
     <!-- JAVASCRIPT COMPLETO INTEGRADO -->
     <script>
         let userBananas = 2450;
@@ -1064,9 +1067,117 @@
             'Jacaré': 'fa-dragon', 'Boto': 'fa-fish', 'Arraia': 'fa-water', 'Capivara': 'fa-hippo'
         };
 
+        // TRILHA SONORA: toca exclusivamente durante uma partida de damas.
+        // Coloque os arquivos musica1.mp3 e musica2.mp3 na pasta "musicas".
+        const playlistFundo = [
+            "musicas/musica1.mp3",
+            "musicas/musica2.mp3"
+        ];
+        let indiceMusica = 0;
+        const playerFundo = document.getElementById('musicaFundo');
+
+        function estaNaTelaDamas() {
+            const secaoJogo = document.getElementById('gameSection');
+            return Boolean(secaoJogo && !secaoJogo.classList.contains('hidden'));
+        }
+
+        function iniciarMusicaPartida() {
+            if (!appSettings.music || !estaNaTelaDamas() || draughtsFinished) return;
+            if (!playerFundo.paused && playerFundo.src) return;
+
+            if (!playerFundo.src || playerFundo.ended) {
+                indiceMusica = 0;
+                playerFundo.src = playlistFundo[indiceMusica];
+            }
+            playerFundo.volume = 0.20;
+            playerFundo.play().catch(() => {});
+        }
+
+        function pararMusicaPartida(reiniciar = true) {
+            playerFundo.pause();
+            if (reiniciar) {
+                playerFundo.currentTime = 0;
+                playerFundo.removeAttribute('src');
+                playerFundo.load();
+                indiceMusica = 0;
+            }
+        }
+
+        playerFundo.addEventListener('ended', () => {
+            if (!appSettings.music || !estaNaTelaDamas() || draughtsFinished) {
+                pararMusicaPartida(false);
+                return;
+            }
+            indiceMusica = (indiceMusica + 1) % playlistFundo.length;
+            playerFundo.src = playlistFundo[indiceMusica];
+            playerFundo.play().catch(() => {});
+        });
+
+        // EFEITOS SONOROS DO JOGO: gerados localmente, sem precisar baixar arquivos.
+        let contextoAudioJogo = null;
+
+        function tocarEfeitoDamas(tipo) {
+            if (!appSettings.sound) return;
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                if (!contextoAudioJogo) contextoAudioJogo = new AudioCtx();
+                if (contextoAudioJogo.state === 'suspended') contextoAudioJogo.resume();
+
+                const ctx = contextoAudioJogo;
+                const agora = ctx.currentTime;
+                const notas = {
+                    movimento: [{ f: 330, t: 0, d: 0.075, tipo: 'triangle', v: 0.12 }],
+                    captura: [{ f: 220, t: 0, d: 0.10, tipo: 'triangle', v: 0.16 }, { f: 145, t: 0.045, d: 0.12, tipo: 'sine', v: 0.10 }],
+                    dama: [{ f: 523.25, t: 0, d: 0.13, tipo: 'sine', v: 0.13 }, { f: 659.25, t: 0.09, d: 0.16, tipo: 'sine', v: 0.13 }, { f: 783.99, t: 0.18, d: 0.22, tipo: 'sine', v: 0.12 }],
+                    vitoria: [{ f: 523.25, t: 0, d: 0.20, tipo: 'triangle', v: 0.14 }, { f: 659.25, t: 0.17, d: 0.22, tipo: 'triangle', v: 0.14 }, { f: 783.99, t: 0.34, d: 0.24, tipo: 'triangle', v: 0.14 }, { f: 1046.5, t: 0.53, d: 0.42, tipo: 'sine', v: 0.13 }]
+                }[tipo];
+                if (!notas) return;
+
+                notas.forEach(nota => {
+                    const osc = ctx.createOscillator();
+                    const ganho = ctx.createGain();
+                    osc.type = nota.tipo;
+                    osc.frequency.setValueAtTime(nota.f, agora + nota.t);
+                    ganho.gain.setValueAtTime(0.0001, agora + nota.t);
+                    ganho.gain.exponentialRampToValueAtTime(nota.v, agora + nota.t + 0.012);
+                    ganho.gain.exponentialRampToValueAtTime(0.0001, agora + nota.t + nota.d);
+                    osc.connect(ganho);
+                    ganho.connect(ctx.destination);
+                    osc.start(agora + nota.t);
+                    osc.stop(agora + nota.t + nota.d + 0.02);
+                });
+            } catch (erro) {
+                // O jogo continua funcionando mesmo se o navegador bloquear áudio.
+            }
+        }
+
+        // Sincroniza a aparência inicial dos botões com os estados padrão (ON).
+        function atualizarBotoesAudio() {
+            const definirEstado = (offId, onId, ativo) => {
+                const off = document.getElementById(offId);
+                const on = document.getElementById(onId);
+                if (!off || !on) return;
+                off.className = ativo
+                    ? "px-4 py-1.5 rounded-lg text-xs font-bold transition-all text-emerald-300/60"
+                    : "px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-red-600/30 border border-red-500 text-red-300";
+                on.className = ativo
+                    ? "px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-emerald-600/30 border border-emerald-500 text-emerald-300"
+                    : "px-4 py-1.5 rounded-lg text-xs font-bold transition-all text-emerald-300/60";
+            };
+            definirEstado('btnMusicOff', 'btnMusicOn', appSettings.music);
+            definirEstado('btnSoundOff', 'btnSoundOn', appSettings.sound);
+        }
+        atualizarBotoesAudio();
+
         // CONTROLE DE ÁUDIO (MÚSICA E SONS OFF/ON)
         function toggleMusic(status) {
             appSettings.music = status;
+            if (status) {
+                iniciarMusicaPartida();
+            } else {
+                pararMusicaPartida(false);
+            }
             const btnOff = document.getElementById('btnMusicOff');
             const btnOn = document.getElementById('btnMusicOn');
 
@@ -1266,6 +1377,14 @@
             });
 
             if (sections[aba]) sections[aba].classList.remove('hidden');
+
+            // A música só pode tocar enquanto a tela de jogo estiver aberta.
+            if (aba === 'game') {
+                iniciarMusicaPartida();
+            } else {
+                pararMusicaPartida();
+            }
+
             if (navs[aba]) {
                 navs[aba].className = "nav-item flex items-center gap-3 px-4 py-2.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 text-amazon-900 font-bold shadow-md cursor-pointer transition-all";
             }
@@ -1539,6 +1658,8 @@
             draughtsPathIndex = 0;
             if (!draughtsLegalMoves.length) {
                 draughtsFinished = true;
+                pararMusicaPartida();
+                tocarEfeitoDamas('vitoria');
                 const winner = draughtsTurnState === 1 ? 'Dourado' : 'Verde';
                 renderizarDamas(`O Jogador ${winner} venceu: o adversário ficou sem movimentos legais.`);
                 return;
@@ -1584,6 +1705,7 @@
             const step = candidates[0].path[draughtsPathIndex];
             const movingPiece = draughtsBoardState[step.from.r][step.from.c];
             if (!movingPiece) return;
+            tocarEfeitoDamas(step.cap ? 'captura' : 'movimento');
             draughtsBoardState[step.from.r][step.from.c] = null;
             if (step.cap) draughtsBoardState[step.cap.r][step.cap.c] = null;
             draughtsBoardState[r][c] = movingPiece;
@@ -1597,7 +1719,10 @@
                 return;
             }
 
-            if (!movingPiece.king && ((movingPiece.side === 1 && r === 0) || (movingPiece.side === -1 && r === 7))) movingPiece.king = true;
+            if (!movingPiece.king && ((movingPiece.side === 1 && r === 0) || (movingPiece.side === -1 && r === 7))) {
+                movingPiece.king = true;
+                tocarEfeitoDamas('dama');
+            }
             const wasCapture = Boolean(step.cap);
             draughtsTurnState *= -1;
             const nextName = draughtsTurnState === 1 ? 'Verde' : 'Dourado';
@@ -1612,13 +1737,16 @@
             draughtsSelectedSquare = null;
             draughtsPathIndex = 0;
             draughtsFinished = false;
+            pararMusicaPartida();
             iniciarTurnoDamas('Nova partida iniciada. O Jogador Verde começa.');
+            iniciarMusicaPartida();
         }
 
         function declararEmpateDamas() {
             if (draughtsFinished) return;
             if (confirm('Os dois jogadores concordam em encerrar esta partida como empate?')) {
                 draughtsFinished = true;
+                pararMusicaPartida();
                 draughtsSelectedSquare = null;
                 draughtsActiveMoves = [];
                 renderizarDamas('Partida encerrada em empate por acordo dos jogadores.');
